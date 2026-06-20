@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Admin: check by email (works regardless of sign-in provider)
+    function isAdmin() {
+      return request.auth != null && 
+        request.auth.token.email == 'abdelrahmanmo147@gmail.com';
+    }
+
+    // Client: any authenticated user who isn't admin
+    function isClient() {
+      return request.auth != null;
+    }
+
+    // Public: anyone can CREATE a message (contact form)
+    match /messages/{messageId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Public: anyone can CREATE an order (checkout form)
+    match /orders/{orderId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Public: anyone can READ pricing config
+    match /pricing/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Public: anyone can READ portfolio items
+    match /portfolioItems/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Public: anyone can READ testimonials
+    match /testimonials/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Public: anyone can READ services and offers
+    match /services/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /offers/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Public: anyone can READ ads and UPDATE them (for click tracking)
+    match /ads/{docId} {
+      allow read: if true;
+      allow update: if true;
+      allow create, delete: if isAdmin();
+    }
+
+    match /tasks/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Public: anyone can READ settings (for payment numbers, etc)
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Clients Collection
+    match /clients/{userId} {
+      // Admin can read and write all clients
+      allow read, write: if isAdmin();
+      // Clients can create, read, update ONLY their own profile (not delete)
+      allow create, read, update: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Catch-all: deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
