@@ -65,6 +65,12 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // Waitlist: anyone can sign up, only admin can manage
+    match /waitlist/{docId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
     // Public: anyone can READ settings (for payment numbers, etc)
     match /settings/{docId} {
       allow read: if true;

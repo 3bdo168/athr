@@ -173,15 +173,32 @@ function TierEditor({ tier, onChange, onDelete, index }) {
             <Field label="Short Description" value={tier.description} onChange={v => updateField('description', v)} />
           </div>
 
-          <div className="flex items-center gap-3 mb-8 p-4 bg-blue-600/5 rounded-xl border border-blue-500/10">
-            <input 
-              type="checkbox" 
-              id={`popular-${index}`}
-              checked={!!tier.popular} 
-              onChange={e => updateField('popular', e.target.checked)}
-              className="w-5 h-5 rounded-md accent-blue-600 bg-gray-800 border-gray-700" 
-            />
-            <label htmlFor={`popular-${index}`} className="text-sm text-gray-300 font-bold cursor-pointer">Mark as "Most Popular" Plan</label>
+          <div className="grid md:grid-cols-2 gap-4 mb-8">
+            <div className="flex items-center gap-3 p-4 bg-blue-600/5 rounded-xl border border-blue-500/10">
+              <input 
+                type="checkbox" 
+                id={`popular-${index}`}
+                checked={!!tier.popular} 
+                onChange={e => updateField('popular', e.target.checked)}
+                className="w-5 h-5 rounded-md accent-blue-600 bg-gray-800 border-gray-700" 
+              />
+              <label htmlFor={`popular-${index}`} className="text-sm text-gray-300 font-bold cursor-pointer">Mark as "Most Popular" Plan</label>
+            </div>
+            <div className={`flex items-center gap-3 p-4 rounded-xl border transition-all ${
+              tier.busy ? 'bg-amber-500/10 border-amber-500/30' : 'bg-gray-800/20 border-gray-700/30'
+            }`}>
+              <input 
+                type="checkbox" 
+                id={`busy-${index}`}
+                checked={!!tier.busy} 
+                onChange={e => updateField('busy', e.target.checked)}
+                className="w-5 h-5 rounded-md accent-amber-500 bg-gray-800 border-gray-700" 
+              />
+              <div>
+                <label htmlFor={`busy-${index}`} className="text-sm text-gray-300 font-bold cursor-pointer block">🔥 Mark as "At Capacity"</label>
+                <p className="text-xs text-gray-500 mt-0.5">Clients will see a waitlist form instead of checkout</p>
+              </div>
+            </div>
           </div>
 
           <div>
@@ -262,7 +279,7 @@ function ServiceEditor({ service, onChange, onDelete, index }) {
 
       {open && (
         <div className="p-8 border-t border-gray-800 animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
             <div className="md:col-span-2">
               <Field label="Service Name" value={service.name} onChange={v => updateField('name', v)} />
             </div>
@@ -274,6 +291,22 @@ function ServiceEditor({ service, onChange, onDelete, index }) {
             </div>
           </div>
 
+          {/* Busy Toggle for builder service */}
+          <div className={`flex items-center gap-3 p-4 rounded-xl border mb-8 transition-all ${
+            service.busy ? 'bg-amber-500/10 border-amber-500/30' : 'bg-gray-800/20 border-gray-700/30'
+          }`}>
+            <input
+              type="checkbox"
+              id={`svc-busy-${index}`}
+              checked={!!service.busy}
+              onChange={e => updateField('busy', e.target.checked)}
+              className="w-5 h-5 rounded-md accent-amber-500 bg-gray-800 border-gray-700"
+            />
+            <div>
+              <label htmlFor={`svc-busy-${index}`} className="text-sm text-gray-300 font-bold cursor-pointer block">🔥 Mark as "At Capacity" (High Demand)</label>
+              <p className="text-xs text-gray-500 mt-0.5">The builder card will show a waitlist CTA instead of price options</p>
+            </div>
+          </div>
           <div>
             <div className="flex items-center justify-between mb-6">
               <h4 className="text-sm font-black text-gray-500 uppercase tracking-widest">Builder Configuration</h4>

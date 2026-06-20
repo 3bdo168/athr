@@ -13,6 +13,7 @@ export default function AdminNav() {
     { name: 'Dashboard',    href: '/admin',               icon: '📊' },
     { name: 'Clients',      href: '/admin/clients',       icon: '👥' },
     { name: 'Orders',       href: '/admin/orders',        icon: '🛒' },
+    { name: 'Waitlist',     href: '/admin/waitlist',      icon: '🔔' },
     { name: 'Messages',     href: '/admin/messages',      icon: '📩' },
     { name: 'Tasks',        href: '/admin/tasks',         icon: '✓'  },
     { name: 'Services',     href: '/admin/services',      icon: '⚙️' },

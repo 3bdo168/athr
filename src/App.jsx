@@ -43,6 +43,7 @@ import PricingControl from "./pages/Admin/PricingControl";
 import PaymentControl from "./pages/Admin/PaymentControl";
 import AdsControl from "./pages/Admin/AdsControl";
 import ClientsControl from "./pages/Admin/ClientsControl";
+import WaitlistControl from "./pages/Admin/WaitlistControl";
 
 import ClientLogin from "./pages/Client/ClientLogin";
 import PendingApproval from "./pages/Client/PendingApproval";
@@ -93,6 +94,7 @@ function AppRoutes() {
         <Route path="/admin/payment" element={<AdminRoute><AdminLayout><PaymentControl /></AdminLayout></AdminRoute>} />
         <Route path="/admin/testimonials" element={<AdminRoute><AdminLayout><TestimonialsControl /></AdminLayout></AdminRoute>} />
         <Route path="/admin/ads" element={<AdminRoute><AdminLayout><AdsControl /></AdminLayout></AdminRoute>} />
+        <Route path="/admin/waitlist" element={<AdminRoute><AdminLayout><WaitlistControl /></AdminLayout></AdminRoute>} />
 
         <Route path="*" element={<Layout><NotFound /></Layout>} />
       </Routes>

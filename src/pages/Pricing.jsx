@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { db } from '../firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useLanguage } from '../context/LanguageContext';
 import SEO from '../components/SEO';
 import AdBanner from '../components/AdBanner';
@@ -143,26 +143,115 @@ const DEFAULT_SERVICES = [
 ];
 
 
+// ─── Waitlist Inline Form ─────────────────────────────────────────────────────
+function WaitlistForm({ tier, onClose }) {
+  const { t } = useLanguage();
+  const [form, setForm] = useState({ name: '', whatsapp: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const name     = tier.nameKey ? t(tier.nameKey) : tier.name;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.whatsapp.trim()) return;
+    setSubmitting(true);
+    try {
+      await addDoc(collection(db, 'waitlist'), {
+        name: form.name.trim(),
+        whatsapp: form.whatsapp.trim(),
+        serviceName: name,
+        tierBilling: tier.billing,
+        tierPrice: tier.price,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+      });
+      setSubmitted(true);
+    } catch (err) {
+      console.error('Waitlist error:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div className="p-5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-2xl text-center">
+        <div className="text-3xl mb-3">🎉</div>
+        <p className="font-bold text-emerald-700 dark:text-emerald-400 text-sm mb-1">You're on the waitlist!</p>
+        <p className="text-xs text-emerald-600 dark:text-emerald-500">We'll reach out on WhatsApp as soon as this service opens up.</p>
+        <button onClick={onClose} className="mt-4 text-xs font-bold text-emerald-600 hover:text-emerald-700 underline">Close</button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="p-5 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-700/40 rounded-2xl space-y-3">
+      <p className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1">Join Waitlist — {name}</p>
+      <input
+        type="text"
+        placeholder="Your Name"
+        value={form.name}
+        onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+        className="w-full px-3 py-2.5 rounded-xl border border-amber-200 dark:border-amber-700/50 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+        required
+      />
+      <input
+        type="tel"
+        placeholder="WhatsApp Number (e.g. 01xxxxxxxxx)"
+        value={form.whatsapp}
+        onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))}
+        className="w-full px-3 py-2.5 rounded-xl border border-amber-200 dark:border-amber-700/50 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+        required
+      />
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white font-bold rounded-xl text-sm transition-all"
+        >
+          {submitting ? 'Saving...' : 'Notify Me 🔔'}
+        </button>
+        <button type="button" onClick={onClose} className="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-bold rounded-xl text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
 // ─── Reusable Tier Card ───────────────────────────────────────────────────────
 function TierCard({ tier }) {
   const { t } = useLanguage();
-  const name = tier.nameKey ? t(tier.nameKey) : tier.name;
-  const desc = tier.descKey ? t(tier.descKey) : tier.description;
+  const [showWaitlist, setShowWaitlist] = useState(false);
+
+  const name     = tier.nameKey ? t(tier.nameKey) : tier.name;
+  const desc     = tier.descKey ? t(tier.descKey) : tier.description;
   const features = tier.featureKeys ? tier.featureKeys.map(k => t(k)) : tier.features;
+  const isBusy   = !!tier.busy;
 
   return (
     <div
       className={`rounded-2xl border transition-all duration-300 flex flex-col ${
-        tier.popular
+        isBusy
+          ? 'border-amber-400 dark:border-amber-600 bg-white dark:bg-gray-800 shadow-lg shadow-amber-100 dark:shadow-amber-900/10'
+          : tier.popular
           ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 shadow-xl scale-105'
           : 'border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-md'
       }`}
     >
-      {tier.popular && (
+      {/* Top badge */}
+      {isBusy && (
+        <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-center py-2 rounded-t-2xl text-sm font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+          <span className="animate-pulse">🔥</span> HIGH DEMAND — Currently at Capacity
+        </div>
+      )}
+      {!isBusy && tier.popular && (
         <div className="bg-blue-600 text-white text-center py-2 rounded-t-2xl text-sm font-bold uppercase tracking-widest">
           {t('pricing.mostPopular')}
         </div>
       )}
+
       <div className="p-8 flex flex-col flex-1">
         <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{name}</h3>
         <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">{desc}</p>
@@ -174,20 +263,44 @@ function TierCard({ tier }) {
           </p>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{tier.billing}</p>
         </div>
-        <Link
-          to={`/checkout?plan=${encodeURIComponent(name)}&total=${encodeURIComponent(tier.price)}`}
-          className={`w-full block text-center py-3 rounded-xl font-semibold transition-colors duration-200 mb-8 ${
-            tier.popular
-              ? 'bg-blue-600 text-white hover:bg-blue-700'
-              : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600'
-          }`}
-        >
-          {t('pricing.getStarted')}
-        </Link>
+
+        {/* CTA Area — changes based on busy state */}
+        {isBusy ? (
+          <div className="mb-8">
+            {showWaitlist ? (
+              <WaitlistForm tier={tier} onClose={() => setShowWaitlist(false)} />
+            ) : (
+              <div className="space-y-3">
+                <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-300 dark:border-amber-600 text-amber-700 dark:text-amber-400 text-sm font-semibold">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                  We're fully booked right now
+                </div>
+                <button
+                  onClick={() => setShowWaitlist(true)}
+                  className="w-full py-3 rounded-xl font-semibold transition-all duration-200 bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-200 dark:shadow-amber-900/30 hover:-translate-y-0.5"
+                >
+                  🔔 Join Waitlist — Get Notified First
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <Link
+            to={`/checkout?plan=${encodeURIComponent(name)}&total=${encodeURIComponent(tier.price)}`}
+            className={`w-full block text-center py-3 rounded-xl font-semibold transition-colors duration-200 mb-8 ${
+              tier.popular
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+          >
+            {t('pricing.getStarted')}
+          </Link>
+        )}
+
         <ul className="space-y-4 mt-auto">
           {features.map((feature, i) => (
             <li key={i} className="flex gap-3 text-gray-700 dark:text-gray-300 text-sm">
-              <span className="text-blue-600 dark:text-blue-400 font-bold shrink-0">✓</span>
+              <span className={`font-bold shrink-0 ${isBusy ? 'text-amber-500' : 'text-blue-600 dark:text-blue-400'}`}>✓</span>
               <span>{feature}</span>
             </li>
           ))}
@@ -346,57 +459,85 @@ function CustomBuilder({ services }) {
           const isSelected = !!selected[service.id];
           const name = service.nameKey ? t(service.nameKey) : service.name;
           const desc = service.descKey ? t(service.descKey) : service.description;
+          const isBusy = !!service.busy;
           
           return (
             <div
               key={service.id}
-              className={`rounded-2xl border-2 p-6 transition-all duration-200 ${
-                isSelected
+              className={`rounded-2xl border-2 p-6 transition-all duration-200 relative overflow-hidden ${
+                isBusy
+                  ? 'border-amber-400/60 dark:border-amber-600/50 bg-amber-50/60 dark:bg-amber-900/10'
+                  : isSelected
                   ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
                   : 'border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600'
               }`}
             >
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-3xl">{service.icon}</span>
+              {isBusy && (
+                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] font-black uppercase tracking-widest text-center py-1 flex items-center justify-center gap-1">
+                  <span className="animate-pulse">🔥</span> At Capacity — Join Waitlist
+                </div>
+              )}
+              <div className={`flex items-center gap-3 mb-4 ${isBusy ? 'mt-4' : ''}`}>
+                <span className={`text-3xl ${isBusy ? 'grayscale opacity-70' : ''}`}>{service.icon}</span>
                 <div>
                   <h3 className="font-bold text-gray-900 dark:text-white text-sm">{name}</h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400">{desc}</p>
                 </div>
               </div>
-              <div className="space-y-2">
-                {service.options.map((opt, idx) => {
-                  const active  = selected[service.id]?.idx === idx;
-                  const currentTotal = Object.values(selected).reduce((s, v) => s + v.price, 0);
-                  const prevPrice    = selected[service.id]?.price ?? 0;
-                  const hypothetical = currentTotal - prevPrice + opt.price;
-                  const locked = !active && hypothetical > budget;
-                  const label = opt.labelKey ? t(opt.labelKey) : opt.label;
-                  
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => toggle(service.id, idx, opt.price)}
-                      disabled={locked}
-                      title={locked ? `${t('pricing.builder.overBudget')} ${budget.toLocaleString('en-EG')} EGP` : ''}
-                      className={`w-full flex flex-col items-start px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 gap-0.5 ${
-                        active
-                          ? 'bg-blue-600 text-white'
-                          : locked
-                          ? 'bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                      }`}
-                    >
-                      <span className="flex items-center gap-1.5 w-full justify-between">
-                        <span>{label}</span>
-                        {locked && <span className="text-xs">🔒</span>}
-                      </span>
-                      <span className={`text-xs font-semibold ${active ? 'text-blue-100' : locked ? 'text-gray-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                        {opt.range}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+              {isBusy ? (
+                <div className="space-y-2">
+                  {service.options.map((opt, idx) => {
+                    const label = opt.labelKey ? t(opt.labelKey) : opt.label;
+                    return (
+                      <div key={idx} className="w-full flex flex-col items-start px-4 py-2.5 rounded-xl text-sm font-medium bg-gray-50 dark:bg-gray-900/60 text-gray-400 dark:text-gray-600 opacity-60 cursor-not-allowed gap-0.5">
+                        <span className="flex items-center gap-1.5 w-full justify-between">
+                          <span>{label}</span>
+                          <span className="text-xs">🔒</span>
+                        </span>
+                        <span className="text-xs font-semibold text-gray-400">{opt.range}</span>
+                      </div>
+                    );
+                  })}
+                  <a href="#pricing-top" className="mt-1 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white transition-all">
+                    🔔 Join Waitlist
+                  </a>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {service.options.map((opt, idx) => {
+                    const active  = selected[service.id]?.idx === idx;
+                    const currentTotal = Object.values(selected).reduce((s, v) => s + v.price, 0);
+                    const prevPrice    = selected[service.id]?.price ?? 0;
+                    const hypothetical = currentTotal - prevPrice + opt.price;
+                    const locked = !active && hypothetical > budget;
+                    const label = opt.labelKey ? t(opt.labelKey) : opt.label;
+                    
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => toggle(service.id, idx, opt.price)}
+                        disabled={locked}
+                        title={locked ? `${t('pricing.builder.overBudget')} ${budget.toLocaleString('en-EG')} EGP` : ''}
+                        className={`w-full flex flex-col items-start px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 gap-0.5 ${
+                          active
+                            ? 'bg-blue-600 text-white'
+                            : locked
+                            ? 'bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5 w-full justify-between">
+                          <span>{label}</span>
+                          {locked && <span className="text-xs">🔒</span>}
+                        </span>
+                        <span className={`text-xs font-semibold ${active ? 'text-blue-100' : locked ? 'text-gray-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                          {opt.range}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })}
