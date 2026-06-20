@@ -11,16 +11,13 @@ export default function AdminLogin() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // If user is logged in via Google (client), sign them out so they can login as admin
-  // If user is logged in via email/password (admin), redirect to admin dashboard
+  // If user is already logged in and is the admin, redirect to dashboard.
+  // If user is logged in but NOT the admin, sign them out.
   useEffect(() => {
     if (user) {
-      const provider = user.providerData?.[0]?.providerId;
-      if (provider === 'password') {
-        // Already logged in as admin, redirect
+      if (user.email === 'abdelrahmanmo147@gmail.com') {
         navigate('/admin', { replace: true });
       } else {
-        // Logged in as client (Google), sign out first
         logoutUser();
       }
     }
