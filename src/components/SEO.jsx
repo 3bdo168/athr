@@ -12,8 +12,8 @@ export default function SEO({ title, description, image, type = 'website', path 
   
   const finalDescription = description || siteDesc;
   // Fallback to the real agency logo
-  const ogImage = image || 'https://atheragency.com/logo.png';
-  const siteUrl = 'https://atheragency.com';
+  const ogImage = image || 'https://athr-agancy.netlify.app/logo.png';
+  const siteUrl = 'https://athr-agancy.netlify.app';
   const url = `${siteUrl}${path}`;
 
   return (
